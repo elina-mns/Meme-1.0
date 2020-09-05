@@ -37,13 +37,17 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     
     @IBAction func didTapShareButton(_ sender: UIBarButtonItem) {
         shareButton.isEnabled = true
-        let activityViewController: UIActivityViewController = UIActivityViewController(activityItems: [generateMemedImage()], applicationActivities: nil)
+        let memedImage = generateMemedImage()
+        let activityViewController: UIActivityViewController = UIActivityViewController(activityItems: [memedImage], applicationActivities: nil)
+        
+        activityViewController.completionWithItemsHandler = { activity, completed, items, error in
+            if completed {
+                UIImageWriteToSavedPhotosAlbum(memedImage, nil, nil, nil)
+                self.dismiss(animated: true, completion: nil)
+            }
+        }
+
         self.present(activityViewController, animated: true, completion: nil)
-    }
-    
-    @objc func shareImage() {
-        let vc = UIActivityViewController(activityItems: [imageView.image!], applicationActivities: [])
-        present(vc, animated: true)
     }
     
     override func viewDidLoad() {
@@ -59,20 +63,23 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         ]
         textField1.defaultTextAttributes = memeTextAttributes
         textField2.defaultTextAttributes = memeTextAttributes
+        shareButton.isEnabled = false
+    }
+    
+    func chooseImageFromCameraOrPhoto(source: UIImagePickerController.SourceType) {
+        let pickerController = UIImagePickerController()
+        pickerController.delegate = self
+        pickerController.allowsEditing = true
+        pickerController.sourceType = source
+        present(pickerController, animated: true, completion: nil)
     }
     
     @IBAction func pickAnImageFromAlbum(_ sender: Any) {
-        let imagePicker = UIImagePickerController()
-        imagePicker.delegate = self
-        imagePicker.sourceType = .photoLibrary
-        present(imagePicker, animated: true, completion: nil)
+        chooseImageFromCameraOrPhoto(source: .photoLibrary)
     }
     
     @IBAction func pickAnImageFromCamera(_ sender: Any) {
-        let imagePicker = UIImagePickerController()
-        imagePicker.delegate = self
-        imagePicker.sourceType = .camera
-        present(imagePicker, animated: true, completion: nil)
+        chooseImageFromCameraOrPhoto(source: .camera)
     }
     
     //Sign up to be notified when the keyboard appears
@@ -93,7 +100,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
     }
     
     @objc func keyBoardWillHide(_ notification: Notification) {
-        view.frame.origin.y = getKeyBoardHeight(notification)
+        view.frame.origin.y = 0
         dismissButton.isEnabled = false
     }
     
