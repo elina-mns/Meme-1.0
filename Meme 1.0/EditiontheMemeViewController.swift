@@ -8,7 +8,7 @@
 
 import UIKit
 
-class EditiontheMemeViewController: UIViewController, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+class EditiontheMemeViewController: UIViewController, UINavigationControllerDelegate, UIImagePickerControllerDelegate, UITextFieldDelegate {
 
     @IBOutlet weak var imageView: UIImageView!
     @IBOutlet weak var cameraButton: UIBarButtonItem!
@@ -17,50 +17,36 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
     @IBOutlet weak var toolBar: UIToolbar!
     @IBOutlet weak var navBar: UINavigationBar!
     @IBOutlet weak var shareButton: UIBarButtonItem!
-    @IBOutlet weak var dismissButton: UIBarButtonItem!
     
     func generateMemedImage() -> UIImage {
         // Render view to an image
         self.toolBar.isHidden = true
         self.navBar.isHidden = true
         
-        //first we will make an UIImage from your view
-        UIGraphicsBeginImageContext(self.view.bounds.size)
-        view.layer.render(in: UIGraphicsGetCurrentContext()!)
-        let sourceImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        //now we will position the image, X/Y away from top left corner to get the portion we want
-        UIGraphicsBeginImageContext(imageView.frame.size)
-        sourceImage?.draw(at: CGPoint(x: 0, y: -imageView.frame.size.height + 80))
-        let croppedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsBeginImageContext(self.view.frame.size)
+        view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
+        let memedImage: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
         UIGraphicsEndImageContext()
         
         self.toolBar.isHidden = false
         self.navBar.isHidden = false
 
-        return croppedImage!
+        return memedImage
     }
     
     @IBAction func didTapShareButton(_ sender: UIBarButtonItem) {
         shareButton.isEnabled = true
         let memedImage = generateMemedImage()
         let activityViewController: UIActivityViewController = UIActivityViewController(activityItems: [memedImage], applicationActivities: nil)
-        
-        activityViewController.completionWithItemsHandler = { activity, completed, items, error in
-            if completed {
-                UIImageWriteToSavedPhotosAlbum(memedImage, nil, nil, nil)
-                let object = UIApplication.shared.delegate
-                let appDelegate = object as! AppDelegate
-                let meme = Meme(image: memedImage,
-                                text1: self.textField1.text ?? "",
-                                text2: self.textField2.text ?? "")
-                appDelegate.memes.append(meme)
-                self.dismiss(animated: true, completion: nil)
-            }
+        self.present(activityViewController, animated: true) {
+            UIImageWriteToSavedPhotosAlbum(memedImage, nil, nil, nil)
+            let object = UIApplication.shared.delegate
+            let appDelegate = object as! AppDelegate
+            let meme = Meme(image: memedImage,
+                            text1: self.textField1.text ?? "",
+                            text2: self.textField2.text ?? "")
+            appDelegate.memes.append(meme)
         }
-
-        self.present(activityViewController, animated: true, completion: nil)
     }
     
     override func viewDidLoad() {
@@ -79,6 +65,9 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
         shareButton.isEnabled = false
         
         navBar.topItem?.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(didTapCancel))
+        
+        self.textField1.delegate = self
+        self.textField2.delegate = self
     }
     
     func chooseImageFromCameraOrPhoto(source: UIImagePickerController.SourceType) {
@@ -111,13 +100,15 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
     }
     
     @objc func keyBoardWillShow(_ notification: Notification) {
-        view.frame.origin.y = -getKeyBoardHeight(notification)
-        dismissButton.isEnabled = true
+        if textField2.isEditing {
+            view.frame.origin.y = -getKeyBoardHeight(notification)
+        }
     }
     
     @objc func keyBoardWillHide(_ notification: Notification) {
-        view.frame.origin.y = 0
-        dismissButton.isEnabled = false
+        if textField2.isEditing {
+            view.frame.origin.y = 0
+        }
     }
     
     func getKeyBoardHeight(_ notification: Notification) -> CGFloat { let userInfo = notification.userInfo
@@ -128,10 +119,7 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
     @objc func didTapCancel() {
         dismiss(animated: true)
     }
-    
-    @IBAction func dismissKeyboard(_ sender: Any) {
-        view.endEditing(true)
-    }
+
     
     func subscribeForKeyboardNotifications() {
         NotificationCenter.default.addObserver(self, selector: #selector(keyBoardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
@@ -149,6 +137,11 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
             shareButton.isEnabled = imageView.image != nil
             dismiss(animated: true, completion: nil)
         }
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        self.view.endEditing(true)
+        return false
     }
 }
 
