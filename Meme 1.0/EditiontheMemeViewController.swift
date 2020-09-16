@@ -24,15 +24,22 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
         self.toolBar.isHidden = true
         self.navBar.isHidden = true
         
-        UIGraphicsBeginImageContext(self.view.frame.size)
-        view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
-        let memedImage: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+        //first we will make an UIImage from your view
+        UIGraphicsBeginImageContext(self.view.bounds.size)
+        view.layer.render(in: UIGraphicsGetCurrentContext()!)
+        let sourceImage = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
 
+        //now we will position the image, X/Y away from top left corner to get the portion we want
+        UIGraphicsBeginImageContext(imageView.frame.size)
+        sourceImage?.draw(at: CGPoint(x: 0, y: -imageView.frame.size.height + 80))
+        let croppedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
         self.toolBar.isHidden = false
         self.navBar.isHidden = false
 
-        return memedImage
+        return croppedImage!
     }
     
     @IBAction func didTapShareButton(_ sender: UIBarButtonItem) {
@@ -43,6 +50,12 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
         activityViewController.completionWithItemsHandler = { activity, completed, items, error in
             if completed {
                 UIImageWriteToSavedPhotosAlbum(memedImage, nil, nil, nil)
+                let object = UIApplication.shared.delegate
+                let appDelegate = object as! AppDelegate
+                let meme = Meme(image: memedImage,
+                                text1: self.textField1.text ?? "",
+                                text2: self.textField2.text ?? "")
+                appDelegate.memes.append(meme)
                 self.dismiss(animated: true, completion: nil)
             }
         }
@@ -57,13 +70,15 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
         let memeTextAttributes: [NSAttributedString.Key: Any] = [
             NSAttributedString.Key.strokeColor: UIColor.black,
             NSAttributedString.Key.foregroundColor: UIColor.white,
-            NSAttributedString.Key.font: UIFont(name: "Helvetica", size: 40)!,
-            NSAttributedString.Key.strokeWidth: 3.0,
+            NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-Bold", size: 40)!,
+            NSAttributedString.Key.strokeWidth: -3.0,
             NSAttributedString.Key.paragraphStyle: paragraphStyle
         ]
         textField1.defaultTextAttributes = memeTextAttributes
         textField2.defaultTextAttributes = memeTextAttributes
         shareButton.isEnabled = false
+        
+        navBar.topItem?.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(didTapCancel))
     }
     
     func chooseImageFromCameraOrPhoto(source: UIImagePickerController.SourceType) {
@@ -81,6 +96,7 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
     @IBAction func pickAnImageFromCamera(_ sender: Any) {
         chooseImageFromCameraOrPhoto(source: .camera)
     }
+    
     
     //Sign up to be notified when the keyboard appears
     override func viewWillAppear(_ animated: Bool) {
@@ -107,6 +123,10 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
     func getKeyBoardHeight(_ notification: Notification) -> CGFloat { let userInfo = notification.userInfo
         let keyboardSize = userInfo![UIResponder.keyboardFrameEndUserInfoKey] as! NSValue
         return keyboardSize.cgRectValue.height
+    }
+    
+    @objc func didTapCancel() {
+        dismiss(animated: true)
     }
     
     @IBAction func dismissKeyboard(_ sender: Any) {
