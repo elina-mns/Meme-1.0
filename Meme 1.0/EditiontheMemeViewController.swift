@@ -38,7 +38,10 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
         shareButton.isEnabled = true
         let memedImage = generateMemedImage()
         let activityViewController: UIActivityViewController = UIActivityViewController(activityItems: [memedImage], applicationActivities: nil)
-        self.present(activityViewController, animated: true) {
+        activityViewController.completionWithItemsHandler = { _, completed, _, _ in
+            guard completed else {
+                return
+            }
             UIImageWriteToSavedPhotosAlbum(memedImage, nil, nil, nil)
             let object = UIApplication.shared.delegate
             let appDelegate = object as! AppDelegate
@@ -47,10 +50,22 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
                             text2: self.textField2.text ?? "")
             appDelegate.memes.append(meme)
         }
+        self.present(activityViewController, animated: true)
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        configureMemeTextField(textField: textField1, text: "")
+        configureMemeTextField(textField: textField2, text: "")
+        shareButton.isEnabled = false
+        
+        navBar.topItem?.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(didTapCancel))
+        
+        self.textField1.delegate = self
+        self.textField2.delegate = self
+    }
+    
+    func configureMemeTextField(textField: UITextField, text: String) {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = NSTextAlignment.center
         let memeTextAttributes: [NSAttributedString.Key: Any] = [
@@ -60,14 +75,10 @@ class EditiontheMemeViewController: UIViewController, UINavigationControllerDele
             NSAttributedString.Key.strokeWidth: -3.0,
             NSAttributedString.Key.paragraphStyle: paragraphStyle
         ]
-        textField1.defaultTextAttributes = memeTextAttributes
-        textField2.defaultTextAttributes = memeTextAttributes
-        shareButton.isEnabled = false
-        
-        navBar.topItem?.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(didTapCancel))
-        
-        self.textField1.delegate = self
-        self.textField2.delegate = self
+        textField.text = text
+        textField.delegate = self
+        textField.defaultTextAttributes = memeTextAttributes
+        textField.textAlignment = .center
     }
     
     func chooseImageFromCameraOrPhoto(source: UIImagePickerController.SourceType) {
