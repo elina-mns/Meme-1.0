@@ -10,3 +10,10 @@ There is an option to share it using messengers.
 ### _Demo_ 
 
 <img src="https://github.com/elina-mns/Meme-1.0/blob/32eee8de90708caf4b88700141675c7d2767b0d2/Demo/Demo%20picture.png"/>
+
+### _Skills that were developed_
+
+* Setting up a navigation structure that creates an intuitive flow through the app
+* Building tables with datasources and delegates
+* Creation of custom table view cells
+* Implementation user interfaces with tab views and collection views
